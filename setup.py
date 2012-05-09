@@ -9,6 +9,7 @@ from bitbucket_distutils import (__author__, __email__, __license__,
                                  __version__, commands)
 
 under_270 = sys.version_info < (2, 7, 0)
+requires = ['requests==0.8.2'] + (['odict'] if under_270 else [])
 
 
 def readme():
@@ -29,7 +30,8 @@ setup(name='bitbucket-distutils',
       author=__author__,
       author_email=__email__,
       license=__license__,
-      install_requires=['requests==0.10.8'] + (['odict'] if under_270 else []),
+      install_requires=requires,
+      setup_requires=requires,
       cmdclass=commands,
       classifiers=[
         'Development Status :: 3 - Alpha',

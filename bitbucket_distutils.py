@@ -10,7 +10,7 @@ __author__ = 'Hong Minhee'
 __email__ = 'minhee' '@' 'dahlia.kr'
 __copyright__ = 'Copyright 2012, Hong Minhee'
 __license__ = 'Public Domain'
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 
 class BitbucketClient(object):
@@ -113,5 +113,6 @@ class UploadCommand(Command):
         self.distribution.metadata.download_url = url
 
 
-commands = {'upload': UploadCommand}
+upload = UploadCommand
+commands = {'upload': upload}
 
