@@ -29,14 +29,14 @@ your ``setup.py`` file::
     except ImportError:
         commands = {}
 
-and then, pass the ``commands`` dictionary into your ``setup()`` function,
-with ``setup_requires`` parameter::
+and then, pass the ``commands`` dictionary into your ``setup()`` function's
+``cmdclass`` parameter and specify ``setup_requires`` parameter::
 
     setup(name='YourPackageName',
           version='1.2.3',
           ...,
           setup_requires=['bitbucket-distutils'],
-          commands=commands)
+          cmdclass=commands)
 
 Now there will be the overwritten ``upload`` command for your ``setup.py``::
 
