@@ -27,5 +27,5 @@ setup(name='bitbucket-distutils',
       author=__author__,
       author_email=__email__,
       license=__license__,
-      install_requires=['requests'] + (['odict'] if under_270 else []))
+      install_requires=['requests==0.10.8'] + (['odict'] if under_270 else []))
 
