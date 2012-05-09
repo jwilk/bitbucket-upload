@@ -101,7 +101,7 @@ You can make a shorthand alias as well::
 Author and license
 ------------------
 
-It is distributed under Public Domain.  Just do what you do with this.  :-)
+It is distributed under Public Domain.  Just do what you want to do with this.
 Written by `Hong Minhee`__.
 
 You can checkout the source code from its `Bitbucket Mercurial repository`__::
