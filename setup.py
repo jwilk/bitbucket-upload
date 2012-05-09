@@ -30,5 +30,19 @@ setup(name='bitbucket-distutils',
       author_email=__email__,
       license=__license__,
       install_requires=['requests==0.10.8'] + (['odict'] if under_270 else []),
-      cmdclass=commands)
+      cmdclass=commands,
+      classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Environment :: Console',
+        'Framework :: Setuptools Plugin',
+        'Intended Audience :: Developers',
+        'License :: Public Domain',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.5',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Topic :: Software Development',
+        'Topic :: System :: Software Distribution'
+      ])
 
