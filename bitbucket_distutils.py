@@ -71,7 +71,7 @@ class BitbucketClient(object):
         return token.group(1)
 
 
-class upload(Command):
+class UploadCommand(Command):
     """Upload package to Bitbucket."""
 
     description = __doc__
@@ -111,4 +111,7 @@ class upload(Command):
         if sdist_url:
             url = sdist_url
         self.distribution.metadata.download_url = url
+
+
+commands = {'upload': UploadCommand}
 
