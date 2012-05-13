@@ -27,12 +27,16 @@ setup(name='bitbucket-distutils',
       version=__version__,
       long_description=readme(),
       py_modules=['bitbucket_distutils'],
+      zip_safe=True,
       author=__author__,
       author_email=__email__,
       license=__license__,
       install_requires=requires,
       setup_requires=requires,
       cmdclass=commands,
+      entry_points={'distutils.commands': [
+          'upload = bitbucket_distutils:upload'
+      ]},
       classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',

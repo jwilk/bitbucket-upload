@@ -23,16 +23,13 @@ First of all your software must be packaged within the standard distribution
 way: use distutils_, Distribute_ or setuptools_.  This package contains
 an extension command for that.
 
-Then, specify ``setup_requires`` and ``entry_points`` parameters of your
-``setup()`` configuration (of ``setup.py`` script)::
+Then, add this package into ``setup_requires`` parameter of your ``setup()``
+configuration (of ``setup.py`` script)::
 
     setup(name='YourPackageName',
           version='1.2.3',
           ...,
-          setup_requires=['bitbucket-distutils >= 0.1.1'],
-          entry_points={'distutils.commands': [
-            'upload = bitbucket_distutils:upload'
-          ]})
+          setup_requires=['bitbucket-distutils >= 0.1.2'])
 
 Now there will be the overwritten ``upload`` command for your ``setup.py``::
 
