@@ -44,6 +44,7 @@ class BitbucketClient(object):
     def __init__(self, username, password, repository):
         import requests  # IF YOU SEE ImportError, DO `easy_install requests`
         self.session = requests.session(
+            verify=True,
             config=dict(trust_env=False),
         )  # IF YOU SEE AttributeError, DO `easy_install -U request`
         self.signin(username, password)
