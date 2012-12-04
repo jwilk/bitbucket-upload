@@ -99,6 +99,12 @@ class BitbucketClient(object):
         token = re.search(r'value=[\'"]([^\'"]+)[\'"]', tag.group(0))
         return token.group(1)
 
+    def signout(self):
+        url = 'https://bitbucket.org/account/signout/'
+        response = self.session.get(url)
+        if response.status_code >= 400:
+            raise HttpError(response.status_code)
+
 def log_begin(s):
     print(s, end=' ... ')
     sys.stdout.flush()
@@ -135,6 +141,9 @@ def main():
         log_begin('uploading {}'.format(filename))
         url = client.upload(filename)
         log_done(url)
+    log_begin('logging out'.format(options.user))
+    client.signout()
+    log_done()
 
 if __name__ == '__main__':
     main()
