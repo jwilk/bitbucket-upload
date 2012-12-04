@@ -110,7 +110,7 @@ def main():
     ap.add_argument('-u', '--user', metavar='<user>')
     ap.add_argument('-p', '--password', metavar='<password>')
     ap.add_argument('--netrc', action='store_true')
-    ap.add_argument('-R', '--repository', required=True)
+    ap.add_argument('-R', '--repository', metavar='<repository>', required=True)
     ap.add_argument('files', metavar='<file>', nargs='+')
     options = ap.parse_args()
     if options.netrc:
