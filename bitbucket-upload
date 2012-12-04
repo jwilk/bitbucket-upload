@@ -1,0 +1,132 @@
+#!/usr/bin/python
+# encoding=UTF-8
+
+# Copyright © 2012 Jakub Wilk <jwilk@jwilk.net>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the “Software”), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# This software incorporates code from bitbucket-distutils[0], written by 
+# Hong Minhee, and put into the public domain.
+#
+# [0] https://bitbucket.org/dahlia/bitbucket-distutils
+
+from __future__ import print_function
+
+import argparse
+import getpass
+import os
+import re
+import sys
+
+class HttpError(IOError):
+    pass
+
+class BitbucketClient(object):
+    """Minimal Bitbucket that signs in and uploads files."""
+
+    def __init__(self, username, password, repository):
+        import requests  # IF YOU SEE ImportError, DO `easy_install requests`
+        self.session = requests.session(
+        )  # IF YOU SEE AttributeError, DO `easy_install -U request`
+        self.signin(username, password)
+        self.repository = repository
+
+    def signin(self, username, password):
+        url = 'https://bitbucket.org/account/signin/'
+        form = self.session.get(url)
+        token = self._find_field(form.content, 'csrfmiddlewaretoken')
+        data = {'username': username, 'password': password,
+                'csrfmiddlewaretoken': token}
+        login = self.session.post(url, data=data, cookies=form.cookies,
+                                  headers={'Referer': url})
+        if login.status_code >= 400:
+            raise HttpError(login.status_code)
+        elif login.status_code == 200 and '<div>Invalid username/email or password</div>' in login.content:
+            raise HttpError(403)
+        self.cookies = login.cookies
+
+    def upload(self, filename):
+        try:
+            from collections import OrderedDict as odict
+        except ImportError:
+            from odict \
+            import odict  # IF YOU SEE ImportError, DO `easy_install odict`
+        url = 'https://bitbucket.org/' + self.repository + '/downloads'
+        s3_url = 'https://bbuseruploads.s3.amazonaws.com/'
+        fields = ('acl', 'success_action_redirect', 'AWSAccessKeyId',
+                  'Policy', 'Signature', 'Content-Type', 'key')
+        form = self.session.get(url, cookies=self.cookies)
+        if form.status_code >= 400:
+            raise HttpError(form.status_code)
+        data = odict((f, self._find_field(form.content, f)) for f in fields)
+        basename = os.path.basename(filename)
+        data['Content-Type'] = 'application/octet-stream'
+        data['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+        data['key'] += basename
+        with open(filename, 'rb') as fp:
+            files = {'file': (basename, fp)}
+            response = self.session.post(s3_url, data=data,
+                                         files=files)
+        if 300 <= response.status_code < 400 and 'location' in response.headers:
+            response = self.session.get(response.headers['location'])
+        elif response.status_code >= 400:
+            raise HttpError(response.status_code)
+        return url + '/' + basename
+
+    def _find_field(self, form_string, name):
+        pattern = (r'<input\s[^<>]*name=[\'"]' + re.escape(name) +
+                   r'[\'"]\s[^>]*>')
+        tag = re.search(pattern, form_string)
+        token = re.search(r'value=[\'"]([^\'"]+)[\'"]', tag.group(0))
+        return token.group(1)
+
+def log_begin(s):
+    print(s, end=' ... ')
+    sys.stdout.flush()
+
+def log_done(s='done'):
+    print(s)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('-u', '--user', metavar='<user>')
+    ap.add_argument('-p', '--password', metavar='<password>')
+    ap.add_argument('-R', '--repository', required=True)
+    ap.add_argument('files', metavar='<file>', nargs='+')
+    options = ap.parse_args()
+    if options.user is None:
+        options.user = getpass.getuser()
+    if options.password is None:
+        options.password = getpass.getpass('Bitbucket password for {}: '.format(options.user))
+    if '/' not in options.repository:
+        log_begin('setting repository to {}'.format(options.repository))
+        options.repository = '{o.user}/{o.repository}'.format(o=options)
+        log_done()
+    log_begin('logging in as {}'.format(options.user))
+    client = BitbucketClient(options.user, options.password, options.repository)
+    log_done()
+    for filename in options.files:
+        log_begin('uploading {}'.format(filename))
+        url = client.upload(filename)
+        log_done(url)
+
+if __name__ == '__main__':
+    main()
+
+# vim:ts=4 sw=4 et
