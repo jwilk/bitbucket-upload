@@ -1,5 +1,4 @@
-#!/usr/bin/python
-# encoding=UTF-8
+#!/usr/bin/python3
 
 # Copyright © 2012 Jakub Wilk <jwilk@jwilk.net>
 #
@@ -25,8 +24,6 @@
 # Hong Minhee, and put into the public domain.
 #
 # [0] https://bitbucket.org/dahlia/bitbucket-distutils
-
-from __future__ import print_function
 
 import argparse
 import collections
@@ -62,7 +59,7 @@ class BitbucketClient(object):
                                   headers={'Referer': url})
         if login.status_code >= 400:
             raise HttpError(login.status_code)
-        elif login.status_code == 200 and '<div>Invalid username/email or password</div>' in login.content:
+        elif login.status_code == 200 and b'<div>Invalid username/email or password</div>' in login.content:
             raise HttpError(403)
         self.cookies = login.cookies
 
@@ -92,11 +89,11 @@ class BitbucketClient(object):
         return url + '/' + basename
 
     def _find_field(self, form_string, name):
-        pattern = (r'<input\s[^<>]*name=[\'"]' + re.escape(name) +
-                   r'[\'"]\s[^>]*>')
+        pattern = (br'<input\s[^<>]*name=[\'"]' + re.escape(name).encode() +
+                   br'[\'"]\s[^>]*>')
         tag = re.search(pattern, form_string)
-        token = re.search(r'value=[\'"]([^\'"]+)[\'"]', tag.group(0))
-        return token.group(1)
+        token = re.search(br'value=[\'"]([^\'"]+)[\'"]', tag.group(0))
+        return token.group(1).decode()
 
     def signout(self):
         url = 'https://bitbucket.org/account/signout/'
