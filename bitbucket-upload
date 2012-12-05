@@ -29,11 +29,14 @@
 from __future__ import print_function
 
 import argparse
+import collections
 import getpass
 import netrc
 import os
 import re
 import sys
+
+import requests
 
 class HttpError(IOError):
     pass
@@ -42,11 +45,10 @@ class BitbucketClient(object):
     """Minimal Bitbucket that signs in and uploads files."""
 
     def __init__(self, username, password, repository):
-        import requests  # IF YOU SEE ImportError, DO `easy_install requests`
         self.session = requests.session(
             verify=True,
             config=dict(trust_env=False),
-        )  # IF YOU SEE AttributeError, DO `easy_install -U request`
+        )
         self.signin(username, password)
         self.repository = repository
 
@@ -65,11 +67,6 @@ class BitbucketClient(object):
         self.cookies = login.cookies
 
     def upload(self, filename):
-        try:
-            from collections import OrderedDict as odict
-        except ImportError:
-            from odict \
-            import odict  # IF YOU SEE ImportError, DO `easy_install odict`
         url = 'https://bitbucket.org/' + self.repository + '/downloads'
         s3_url = 'https://bbuseruploads.s3.amazonaws.com/'
         fields = ('acl', 'success_action_redirect', 'AWSAccessKeyId',
@@ -77,7 +74,9 @@ class BitbucketClient(object):
         form = self.session.get(url, cookies=self.cookies)
         if form.status_code >= 400:
             raise HttpError(form.status_code)
-        data = odict((f, self._find_field(form.content, f)) for f in fields)
+        data = collections.OrderedDict(
+            (f, self._find_field(form.content, f)) for f in fields
+        )
         basename = os.path.basename(filename)
         data['Content-Type'] = 'application/octet-stream'
         data['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
