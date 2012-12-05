@@ -35,9 +35,6 @@ import sys
 
 import requests
 
-class HttpError(IOError):
-    pass
-
 class BitbucketClient(object):
     """Minimal Bitbucket that signs in and uploads files."""
 
@@ -63,10 +60,9 @@ class BitbucketClient(object):
             cookies=form.cookies,
             headers={'Referer': url}
         )
-        if login.status_code >= 400:
-            raise HttpError(login.status_code)
-        elif login.status_code == 200 and '<div>Invalid username/email or password</div>' in login.text:
-            raise HttpError(403)
+        if login.status_code == 200 and '<div>Invalid username/email or password</div>' in login.text:
+            login.status_code = 403
+        login.raise_for_status()
         self.cookies = login.cookies
 
     def upload(self, filename):
@@ -83,8 +79,7 @@ class BitbucketClient(object):
             'key'
         )
         form = self.session.get(url, cookies=self.cookies)
-        if form.status_code >= 400:
-            raise HttpError(form.status_code)
+        form.raise_for_status()
         data = collections.OrderedDict(
             (f, self._find_field(form.text, f)) for f in fields
         )
@@ -94,10 +89,7 @@ class BitbucketClient(object):
         with open(filename, 'rb') as fp:
             files = {'file': (basename, fp)}
             response = self.session.post(s3_url, data=data, files=files)
-        if 300 <= response.status_code < 400 and 'location' in response.headers:
-            response = self.session.get(response.headers['location'])
-        elif response.status_code >= 400:
-            raise HttpError(response.status_code)
+        response.raise_for_status()
         return url + '/' + basename
 
     def _find_field(self, form_string, name):
@@ -113,8 +105,7 @@ class BitbucketClient(object):
     def signout(self):
         url = 'https://bitbucket.org/account/signout/'
         response = self.session.get(url)
-        if response.status_code >= 400:
-            raise HttpError(response.status_code)
+        response.raise_for_status()
 
 def log_begin(s):
     print(s, end=' ... ')
