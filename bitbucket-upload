@@ -52,7 +52,7 @@ class BitbucketClient(object):
     def signin(self, username, password):
         url = 'https://bitbucket.org/account/signin/'
         form = self.session.get(url)
-        token = self._find_field(form.content, 'csrfmiddlewaretoken')
+        token = self._find_field(form.text, 'csrfmiddlewaretoken')
         data = {
             'username': username,
             'password': password,
@@ -65,7 +65,7 @@ class BitbucketClient(object):
         )
         if login.status_code >= 400:
             raise HttpError(login.status_code)
-        elif login.status_code == 200 and b'<div>Invalid username/email or password</div>' in login.content:
+        elif login.status_code == 200 and '<div>Invalid username/email or password</div>' in login.text:
             raise HttpError(403)
         self.cookies = login.cookies
 
@@ -86,7 +86,7 @@ class BitbucketClient(object):
         if form.status_code >= 400:
             raise HttpError(form.status_code)
         data = collections.OrderedDict(
-            (f, self._find_field(form.content, f)) for f in fields
+            (f, self._find_field(form.text, f)) for f in fields
         )
         basename = os.path.basename(filename)
         data['Content-Disposition'] += '"{}"'.format(basename)
@@ -101,14 +101,14 @@ class BitbucketClient(object):
         return url + '/' + basename
 
     def _find_field(self, form_string, name):
-        pattern = b''.join((
-            br'<input\s[^<>]*name=[\'"]',
-            re.escape(name).encode(),
-            br'[\'"]\s[^>]*>'
+        pattern = ''.join((
+            r'<input\s[^<>]*name=[\'"]',
+            re.escape(name),
+            r'[\'"]\s[^>]*>'
         ))
         tag = re.search(pattern, form_string)
-        token = re.search(br'value=[\'"]([^\'"]+)[\'"]', tag.group(0))
-        return token.group(1).decode()
+        token = re.search(r'value=[\'"]([^\'"]+)[\'"]', tag.group(0))
+        return token.group(1)
 
     def signout(self):
         url = 'https://bitbucket.org/account/signout/'
