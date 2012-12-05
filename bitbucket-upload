@@ -88,7 +88,7 @@ class BitbucketClient(object):
             (f, self._find_field(form.content, f)) for f in fields
         )
         basename = os.path.basename(filename)
-        data['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+        data['Content-Disposition'] = 'attachment; filename="{}"'.format(basename)
         data['key'] += basename
         with open(filename, 'rb') as fp:
             files = {'file': (basename, fp)}
