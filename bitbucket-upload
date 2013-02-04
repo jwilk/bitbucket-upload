@@ -39,10 +39,9 @@ class BitbucketClient(object):
     """Minimal Bitbucket that signs in and uploads files."""
 
     def __init__(self, username, password, repository):
-        self.session = requests.session(
-            verify=True,
-            config=dict(trust_env=False),
-        )
+        self.session = requests.Session()
+        self.session.verify = True
+        self.session.trust_env = False
         self.signin(username, password)
         self.repository = repository
 
@@ -122,6 +121,8 @@ def main():
     ap.add_argument('-R', '--repository', metavar='<repository>', required=True)
     ap.add_argument('files', metavar='<file>', nargs='+')
     options = ap.parse_args()
+    if int(requests.__version__.split('.')[0]) < 1:
+        raise NotImplementedError('requests >= 1.0 is required')
     if options.netrc:
         (user, _, password) = netrc.netrc().authenticators('bitbucket.org')
         if (options.user is not None) and (user != options.user):
