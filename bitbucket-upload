@@ -42,6 +42,7 @@ class BitbucketClient(object):
         self.session = requests.Session()
         self.session.verify = True
         self.session.trust_env = False
+        self.session.headers['User-Agent'] = 'bitbucket-upload (https://bitbucket.org/jwilk/bitbucket-upload)'
         self.signin(username, password)
         self.repository = repository
 
