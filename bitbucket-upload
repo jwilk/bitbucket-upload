@@ -33,6 +33,7 @@ import os
 import re
 import sys
 
+import urllib3
 import requests
 
 class BitbucketClient(object):
@@ -124,10 +125,13 @@ def main():
     ap.add_argument('-p', '--password', metavar='<password>')
     ap.add_argument('--netrc', action='store_true')
     ap.add_argument('-R', '--repository', metavar='<repository>', required=True)
+    ap.add_argument('--debug', action='store_true')
     ap.add_argument('files', metavar='<file>', nargs='+')
     options = ap.parse_args()
     if int(requests.__version__.split('.')[0]) < 1:
         raise NotImplementedError('requests >= 1.0 is required')
+    if options.debug:
+        urllib3.add_stderr_logger()
     if options.netrc:
         (user, _, password) = netrc.netrc().authenticators('bitbucket.org')
         if (options.user is not None) and (user != options.user):
