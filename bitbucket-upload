@@ -88,7 +88,11 @@ class BitbucketClient(object):
         data['key'] += basename
         with open(filename, 'rb') as fp:
             files = {'file': (basename, fp)}
-            response = self.session.post(s3_url, data=data, files=files)
+            response = self.session.post(s3_url,
+                data=data,
+                files=files,
+                headers={'Referer': url},
+            )
         response.raise_for_status()
         return url + '/' + basename
 
