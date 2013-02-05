@@ -91,7 +91,7 @@ class BitbucketClient(object):
                 data=data,
                 files=files,
                 headers={'Referer': url},
-                allow_redirects=False,
+                allow_redirects=False, # https://github.com/kennethreitz/requests/issues/1156
             )
         self.session.get(response.headers['location'])
         response.raise_for_status()
