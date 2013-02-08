@@ -133,7 +133,10 @@ def main():
     if options.debug:
         urllib3.add_stderr_logger()
     if options.netrc:
-        (user, _, password) = netrc.netrc().authenticators('bitbucket.org')
+        authinfo = netrc.netrc().authenticators('bitbucket.org')
+        if authinfo is None:
+            ap.error('missing netrc entry for bitbucket.org')
+        (user, _, password) = authinfo
         if (options.user is not None) and (user != options.user):
             ap.error('netrc user mismatch: {} != {}'.format(user, options.user))
         options.user = user
