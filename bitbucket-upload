@@ -36,12 +36,17 @@ import sys
 import urllib3
 import requests
 
+ca_certificate = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    'ca.crt'
+)
+
 class BitbucketClient(object):
     """Minimal Bitbucket that signs in and uploads files."""
 
     def __init__(self, username, password, repository):
         self.session = requests.Session()
-        self.session.verify = True
+        self.session.verify = ca_certificate
         self.session.trust_env = False
         self.session.headers['User-Agent'] = 'bitbucket-upload (https://bitbucket.org/jwilk/bitbucket-upload)'
         self.signin(username, password)
