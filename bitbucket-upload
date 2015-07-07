@@ -87,8 +87,10 @@ class BitbucketClient(object):
                 headers={'Referer': url},
                 allow_redirects=False, # https://github.com/kennethreitz/requests/issues/1156
             )
-        self.session.get(response.headers['location'])
-        response.raise_for_status()
+        try:
+            self.session.get(response.headers['location'])
+        finally:
+            response.raise_for_status()
         return url + '/' + basename
 
     def _find_field(self, form_string, name):
