@@ -26,9 +26,7 @@
 # [0] https://bitbucket.org/dahlia/bitbucket-distutils
 
 import argparse
-import collections
 import getpass
-import http.client
 import logging
 import netrc
 import os
