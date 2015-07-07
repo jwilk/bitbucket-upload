@@ -28,12 +28,13 @@
 import argparse
 import collections
 import getpass
+import http.client
+import logging
 import netrc
 import os
 import re
 import sys
 
-import urllib3
 import requests
 
 ca_certificate = os.path.join(
@@ -127,7 +128,11 @@ def main():
     if int(requests.__version__.split('.')[0]) < 1:
         raise NotImplementedError('requests >= 1.0 is required')
     if options.debug:
-        urllib3.add_stderr_logger()
+        logging.basicConfig()
+        for mod in ['urllib3', 'requests.packages.urllib3']:
+            logger = logging.getLogger(mod)
+            logger.setLevel(logging.DEBUG)
+            logger.propagate = True
     if options.netrc:
         authinfo = netrc.netrc().authenticators('bitbucket.org')
         if authinfo is None:
