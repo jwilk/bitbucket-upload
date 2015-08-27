@@ -155,7 +155,7 @@ def main():
         log_begin('uploading {}'.format(filename))
         url = client.upload(filename)
         log_done(url)
-    log_begin('logging out'.format(options.user))
+    log_begin('logging out')
     client.signout()
     log_done()
 
