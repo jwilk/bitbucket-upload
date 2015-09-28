@@ -26,10 +26,12 @@
 # [0] https://bitbucket.org/dahlia/bitbucket-distutils
 
 import argparse
+import collections
 import getpass
 import logging
 import os
 import re
+import subprocess as ipc
 import sys
 
 import requests
@@ -113,6 +115,52 @@ def log_begin(s):
 def log_done(s='done'):
     print(s)
 
+def get_hg_password(expected_user):
+    try:
+        hg = ipc.Popen(['hg', 'config', 'auth'], stdout=ipc.PIPE)
+    except OSError:
+        return (None, None)
+    (stdout, stderr) = hg.communicate()
+    if hg.wait() != 0:
+        return (None, None)
+    stdout = stdout.decode('ASCII')
+    config = collections.defaultdict(dict)
+    for line in stdout.splitlines():
+        line = line.rstrip('\n')
+        key, value = line.split('=', 1)
+        group, key = key.rsplit('.', 1)
+        if value:
+            config[group][key] = value
+    best_rank = 0
+    best_auth = (None, None)
+    for auth in config.values():
+        if expected_user is not None:
+            if auth.get('username', expected_user) != expected_user:
+                continue
+        prefix = auth.get('prefix')
+        if not prefix:
+            continue
+        if '://' in prefix:
+            scheme, prefix = prefix.split('://', 1)
+            if scheme != 'https':
+                continue
+        else:
+            schemes = auth.get('schemes', 'https').split()
+            if 'https' not in schemes:
+                continue
+        rank = 2 * len(prefix) + ('username' in auth)
+        if rank <= best_rank:
+            continue
+        if prefix == '*':
+            pass
+        elif 'bitbucket.org/'.startswith(prefix):
+            pass
+        else:
+            continue
+        best_rank = rank
+        best_auth = (auth.get('username'), auth.get('password'))
+    return best_auth
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('-u', '--user', metavar='<user>')
@@ -129,6 +177,8 @@ def main():
             logger = logging.getLogger(mod)
             logger.setLevel(logging.DEBUG)
             logger.propagate = True
+    if options.password is None:
+        (options.user, options.password) = get_hg_password(options.user)
     if options.user is None:
         options.user = getpass.getuser()
     if options.password is None:
