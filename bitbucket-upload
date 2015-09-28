@@ -28,7 +28,6 @@
 import argparse
 import getpass
 import logging
-import netrc
 import os
 import re
 import sys
@@ -118,7 +117,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('-u', '--user', metavar='<user>')
     ap.add_argument('-p', '--password', metavar='<password>')
-    ap.add_argument('--netrc', action='store_true')
     ap.add_argument('-R', '--repository', metavar='<repository>', required=True)
     ap.add_argument('--debug', action='store_true')
     ap.add_argument('files', metavar='<file>', nargs='+')
@@ -131,15 +129,6 @@ def main():
             logger = logging.getLogger(mod)
             logger.setLevel(logging.DEBUG)
             logger.propagate = True
-    if options.netrc:
-        authinfo = netrc.netrc().authenticators('bitbucket.org')
-        if authinfo is None:
-            ap.error('missing netrc entry for bitbucket.org')
-        (user, _, password) = authinfo
-        if (options.user is not None) and (user != options.user):
-            ap.error('netrc user mismatch: {} != {}'.format(user, options.user))
-        options.user = user
-        options.password = password
     if options.user is None:
         options.user = getpass.getuser()
     if options.password is None:
