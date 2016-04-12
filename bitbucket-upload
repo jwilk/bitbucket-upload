@@ -42,7 +42,6 @@ ca_certificate = os.path.join(
 )
 
 class BitbucketClient(object):
-    """Minimal Bitbucket that signs in and uploads files."""
 
     def __init__(self, username, password, repository):
         self.session = requests.Session()
