@@ -28,68 +28,117 @@
 import argparse
 import collections
 import getpass
-import logging
+import http.client
+import io
 import os
+import random
 import re
+import ssl
+import string
 import subprocess as ipc
 import sys
-
-import requests
+import urllib.request
 
 ca_certificate = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     'ca.crt'
 )
 
+user_agent = 'bitbucket-upload (https://bitbucket.org/jwilk/bitbucket-upload)'
+
+class LoginError(RuntimeError):
+    pass
+
 class BitbucketClient(object):
 
     def __init__(self, username, password, repository):
-        self.session = requests.Session()
-        self.session.verify = ca_certificate
-        self.session.trust_env = False
-        self.session.headers['User-Agent'] = 'bitbucket-upload (https://bitbucket.org/jwilk/bitbucket-upload)'
+        tls_context = ssl.create_default_context(cafile=ca_certificate)
+        self._url_opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor,
+            urllib.request.HTTPSHandler(context=tls_context),
+        )
         self.signin(username, password)
         self.repository = repository
 
+    def get(self, url, encoding=None):
+        request = urllib.request.Request(url, headers={'User-Agent': user_agent})
+        with self._url_opener.open(request) as fp:
+            data = fp.read()
+        if encoding is not None:
+            data = data.decode(encoding)
+        return data
+
+    def post(self, url, data=None, headers=None, files=False, encoding=None):
+        headers = dict(headers or ())
+        headers['User-Agent'] = user_agent
+        data = data or {}
+        files = files or {}
+        if files:
+            boundary = ''.join(random.choice(string.ascii_lowercase) for x in range(16))
+            fp = io.BytesIO()
+            for fldname, value in data.items():
+                fp.write(b'--' +  boundary.encode() + b'\r\n')
+                fp.write(b'Content-Disposition: form-data; name="' + fldname.encode('ASCII') + b'"\r\n')
+                fp.write(b'\r\n')
+                if isinstance(value, str):
+                    value = value.encode('ASCII')
+                fp.write(value)
+                fp.write(b'\r\n')
+            for fldname, (filename, value) in files.items():
+                fp.write(b'--' +  boundary.encode() + b'\r\n')
+                fp.write(b'Content-Disposition: form-data; name="' + fldname.encode('ASCII') + b'"; filename="' + filename.encode('ASCII') + b'"\r\n')
+                fp.write(b'Content-Type: application/octet-stream\r\n')
+                fp.write(b'\r\n')
+                fp.write(value)
+                fp.write(b'\r\n')
+            fp.write(b'--' +  boundary.encode() + b'--\r\n')
+            data = fp.getvalue()
+            headers['Content-Type'] = 'multipart/form-data; boundary=' + boundary
+        else:
+            data = urllib.parse.urlencode(data)
+            data = data.encode('ASCII')
+        request = urllib.request.Request(url, headers=headers, data=data)
+        with self._url_opener.open(request) as fp:
+            data = fp.read()
+        if encoding is not None:
+            data = data.decode(encoding)
+        return data
+
     def signin(self, username, password):
         url = 'https://bitbucket.org/account/signin/'
-        form = self.session.get(url)
-        token = self._find_field(form.text, 'csrfmiddlewaretoken')
+        form = self.get(url, encoding='UTF-8')
+        csrf_token = self._find_field(form, 'csrfmiddlewaretoken')
         data = {
             'username': username,
             'password': password,
-            'csrfmiddlewaretoken': token
+            'csrfmiddlewaretoken': csrf_token
         }
-        login = self.session.post(url,
+        login = self.post(url,
             data=data,
-            headers={'Referer': url}
+            headers={'Referer': url},
+            encoding='UTF-8'
         )
-        if login.status_code == 200 and '<div>Invalid username/email or password</div>' in login.text:
-            login.status_code = 403
-        login.raise_for_status()
+        if '<div id="error"' in login:
+            raise LoginError
+        if '<div id="js-global-login-error-container"' in login:
+            raise LoginError
 
     def upload(self, filename):
         url = 'https://bitbucket.org/' + self.repository + '/downloads'
-        form = self.session.get(url)
-        form.raise_for_status()
-        crsf_token = self.session.cookies['csrftoken']
+        form = self.get(url, encoding='UTF-8')
+        csrf_token = self._find_field(form, 'csrfmiddlewaretoken')
         basename = os.path.basename(filename)
         data = dict(
-            csrfmiddlewaretoken=crsf_token,
+            csrfmiddlewaretoken=csrf_token,
             token='',
         )
         with open(filename, 'rb') as fp:
-            files = {'files': (basename, fp)}
-            response = self.session.post(url,
-                data=data,
-                files=files,
-                headers={'Referer': url},
-                allow_redirects=False, # https://github.com/kennethreitz/requests/issues/1156
-            )
-        try:
-            self.session.get(response.headers['location'])
-        finally:
-            response.raise_for_status()
+            contents = fp.read()
+        self.post(url,
+            data=data,
+            files=dict(files=(basename, contents)),
+            headers={'Referer': url},
+        )
         return url + '/' + basename
 
     def _find_field(self, form_string, name):
@@ -104,8 +153,7 @@ class BitbucketClient(object):
 
     def signout(self):
         url = 'https://bitbucket.org/account/signout/'
-        response = self.session.get(url)
-        response.raise_for_status()
+        self.get(url)
 
 def log_begin(s):
     print(s, end=' ... ')
@@ -168,14 +216,8 @@ def main():
     ap.add_argument('--debug', action='store_true')
     ap.add_argument('files', metavar='<file>', nargs='+')
     options = ap.parse_args()
-    if int(requests.__version__.split('.')[0]) < 1:
-        raise NotImplementedError('requests >= 1.0 is required')
     if options.debug:
-        logging.basicConfig()
-        for mod in ['urllib3', 'requests.packages.urllib3']:
-            logger = logging.getLogger(mod)
-            logger.setLevel(logging.DEBUG)
-            logger.propagate = True
+        http.client.HTTPConnection.debuglevel = 1
     if options.password is None:
         (options.user, options.password) = get_hg_password(options.user)
     if options.user is None:
