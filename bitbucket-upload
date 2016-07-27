@@ -77,7 +77,7 @@ class BitbucketClient(object):
             boundary = ''.join(random.choice(string.ascii_lowercase) for x in range(16))
             fp = io.BytesIO()
             for fldname, value in data.items():
-                fp.write(b'--' +  boundary.encode() + b'\r\n')
+                fp.write(b'--' + boundary.encode() + b'\r\n')
                 fp.write(b'Content-Disposition: form-data; name="' + fldname.encode('ASCII') + b'"\r\n')
                 fp.write(b'\r\n')
                 if isinstance(value, str):
@@ -85,13 +85,13 @@ class BitbucketClient(object):
                 fp.write(value)
                 fp.write(b'\r\n')
             for fldname, (filename, value) in files.items():
-                fp.write(b'--' +  boundary.encode() + b'\r\n')
+                fp.write(b'--' + boundary.encode() + b'\r\n')
                 fp.write(b'Content-Disposition: form-data; name="' + fldname.encode('ASCII') + b'"; filename="' + filename.encode('ASCII') + b'"\r\n')
                 fp.write(b'Content-Type: application/octet-stream\r\n')
                 fp.write(b'\r\n')
                 fp.write(value)
                 fp.write(b'\r\n')
-            fp.write(b'--' +  boundary.encode() + b'--\r\n')
+            fp.write(b'--' + boundary.encode() + b'--\r\n')
             data = fp.getvalue()
             headers['Content-Type'] = 'multipart/form-data; boundary=' + boundary
         else:
