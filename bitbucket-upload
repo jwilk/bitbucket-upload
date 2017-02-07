@@ -44,7 +44,7 @@ ca_certificate = os.path.join(
     'ca.crt'
 )
 
-user_agent = 'bitbucket-upload (https://bitbucket.org/jwilk/bitbucket-upload)'
+user_agent = 'bitbucket-upload (https://github.com/jwilk/bitbucket-upload)'
 
 class LoginError(RuntimeError):
     pass
