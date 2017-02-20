@@ -164,7 +164,7 @@ def log_done(s='done'):
 
 def get_hg_password(expected_user):
     try:
-        hg = ipc.Popen(['hg', 'config', 'auth'], stdout=ipc.PIPE)
+        hg = ipc.Popen(['hg', '--cwd', '/', 'config', 'auth'], stdout=ipc.PIPE)
     except OSError:
         return (None, None)
     (stdout, stderr) = hg.communicate()
